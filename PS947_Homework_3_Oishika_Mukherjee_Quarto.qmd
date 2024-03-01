@@ -2,7 +2,7 @@
 title: 'PS947: Homework 2'
 author: "Oishika Mukherjee "
 GIT_Repository: "https://github.com/om20475/PS947_2315666"
-date: ""
+date: " "
 output:
   html_document:
     df_print: paged

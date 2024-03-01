@@ -1,8 +1,8 @@
 ---
-title: 'PS947: Homework 2'
+title: 'PS947: Homework 3'
 author: "Oishika Mukherjee "
 GIT_link: "https://github.com/om20475/PS947_2315666"
-date: " "
+date: "01/03/2024 "
 output:
   html_document:
     df_print: paged
@@ -180,4 +180,4 @@ ggplot(prior_ll, aes(x, y, group = interaction(alpha, beta))) +
        title = "Prior Predictions for Beta Distributions")
 ```
 
-We have plotted a set of prior predictions for our Beta distribution. For the alpha parameter we have created a set of values using normal distribution of a range between 65 and 85 as we are assuming top range of marks varies between the mentioned range. And similarly, for Beta we generated the set of normally distributed values within the range between 40 and 50 (assumed as minimum obtained marks.)
+We have plotted a set of prior predictions for our Beta distribution. For the alpha parameter, we have generated a set of values using a normal distribution ranging from 65 to 85, assuming that the upper range of marks falls within this interval. Similarly, for Beta, we have generated a set of values distributed normally within the range of 40 to 50, which we assume represents the minimum obtained marks.

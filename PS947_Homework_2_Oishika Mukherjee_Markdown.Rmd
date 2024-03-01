@@ -1,0 +1,263 @@
+---
+title: 'PS947: Homework 2'
+author: "Oishika Mukherjee "
+date: " "
+output:
+  html_document:
+    df_print: paged
+  word_document: default
+  pdf_document: default
+---
+
+```{r, echo=TRUE, include=FALSE,warning=FALSE}
+#------------ Adding required libraries -----------#
+
+library('dplyr')
+library('ggplot2')
+library('tidyverse')
+library(car)
+library(ggthemes)
+library(RColorBrewer)
+library(wesanderson)
+library(lme4)
+```
+
+#-----1.1 Plotting ------#
+
+```{r,echo = True, warning=FALSE}
+#read in aifaces.csv#
+
+aifaces <- read.csv(file.choose())
+head(aifaces, 15)
+aifaces$real_or_sim  <- factor(aifaces$real_or_sim)
+```
+
+```{r,echo = True, warning=FALSE}
+#summarise the data to look at how accuracy depends on face-type
+grouping <- group_by(aifaces, real_or_sim)
+aifaces_summary <- summarise(grouping, mean_accuracy = mean(acc))
+aifaces_summary
+```
+
+```{r,echo = True, warning=FALSE}
+#plotting the summarized data with the help of barplot
+ggplot(aifaces_summary, aes(real_or_sim , mean_accuracy, fill = real_or_sim)) + geom_col(position = "dodge") +
+  xlab('Face type') + ylab('Mean accuracy') + labs(fill = "Real or Simulated")+
+  theme_few() + scale_fill_few()+ggtitle("Accuracy VS FaceType")
+```
+
+Explanation:- We can observe that The mean accuracy for real faces is 0.56. This means that when the face type was real, the correct prediction was made about 56% of the time. The mean accuracy for simulated faces is lower, at around 0.28. This means that when the face type was simulated, the correct prediction was made about 28% of the time.Therefore, it is evident that accuracy of predictions is much higher when the face type is real compared to when it is simulated.
+
+
+
+#------------- 1.2 Fit a model---------#
+```{r,echo = True, warning=FALSE}
+# fitting binomial GLM function #
+acc_model <- glm(acc ~ real_or_sim, data = aifaces, family = "binomial")
+summary(acc_model)
+```
+
+Explanation:- The "real_or_simsimulated" is the estimated difference in log-odds
+between “simulated” and “real”. From the "Estimate" coefficient of "real_or_simsimulated"
+we can say that the log-odds of acc being 1 decreases by 1.1856 when going from "real" to
+"simulated". Again, in our case, the p-value for "real_or_simsimulated"
+is 0.00524, which is less than 0.05, indicating a statistically significant
+difference in accuracy between real and simulated faces. The decrease in deviance values when
+switching from the null model to our suggested model also suggests that "real_or_sim"
+is useful for predicting acc.
+
+In conclusion, the model suggests that there is a significant difference
+in accuracy between real and simulated faces for this participant. The negative
+coefficient for real_or_simsimulated suggests that the accuracy is lower for
+simulated faces compared to real faces.
+
+
+#----------------  1.3 A more complicated model --------------#
+
+```{r,echo = True, warning=FALSE}
+# Fit a new model with interaction
+new_model <- glm(acc ~ real_or_sim * conf, data = aifaces, family = "binomial")
+
+# Print the summary of the new model
+summary(new_model)
+
+```
+
+Explanation:- The revised model is predicting the acc (accuracy) based on the type of face
+(real_or_sim) and the confidence (conf), as well as their interaction (real_or_sim:conf).
+"real_or_simsimulated:conf" represents the combined effect of the face type (real_or_sim)
+and confidence (conf) on the accuracy (acc).We have included the interaction term
+to test if the effect of confidence on accuracy is different based on the face type
+(real or simulated). The coefficient of the interaction term in the revised model is
+negative (-0.07613), which suggests that the effect of confidence on accuracy decreases
+when the face is simulated compared to when it is real. Similarly, in your case, the p-value for
+"real_or_simsimulated:conf" is 0.00658, which is less than 0.05, which suggests that there is
+statistically significant interaction between face type and confidence. As a conclusion, we
+can say that for the given participant, the confidence has a lesser impact on the accuracy
+while judging simulated faces compared to real faces.
+
+
+```{r,echo = True, warning=FALSE}
+# Plotting Confidence Vs accuracy
+ggplot(aifaces, aes(x = conf, y = acc, color = real_or_sim)) +
+  geom_point()+
+  geom_smooth(method = "glm",  formula = y ~ x, method.args = list(family = "binomial"), fullrange = TRUE, se= FALSE) +
+  labs(x = "Confidence", y = "Accuracy", color = "Face Type") +
+  theme_minimal()
+
+```
+
+Explanation:- We have plotted the graph to explore the relation/interaction between the confidence
+and accuracy for simulated and real face types, which further corroborates the conlusion, we have
+drawn from the previous revised model. The stiff increase of the red line (real) suggests that as confidence
+increases, the accuracy of identifying real faces also increases. The exact opposite phenomenon we
+we can observe for simulated face.The sharp decline of the blue line (simulated) suggests that as the
+confidence increases, the accuracy decreases drastically while identifying simulated faces.
+
+
+
+#----------- 1.4 Predicting-----------------#
+```{r,echo = True, warning=FALSE}
+
+# setting prediction conditions for real face with confidence rating of 60
+predict_conds <- data.frame(real_or_sim = "real", conf = 60)
+predicted_accuracy <- predict(new_model, newdata = predict_conds, type = "response")
+
+# Print the predicted accuracy
+print(predicted_accuracy)
+```
+
+Based on our revised model, the person's predicted accuracy for a real
+face that they have given a confidence rating of 60 to will be 69.49%.
+
+
+
+# Question 2
+```{r,echo = True, warning=FALSE}
+#read in veg.csv#
+veg <- read.csv(file.choose())
+head(veg, 15)
+
+```
+
+
+#-----1.1 Plotting ------#
+```{r,echo = True, warning=FALSE}
+ggplot(veg, aes(x = condition, y = PercentDinersChooseVeg, fill = condition)) +
+  geom_boxplot() +
+  geom_point() +
+  stat_summary(geom="text", fun.y=quantile,
+               aes(label=sprintf("%1.1f", ..y..)),
+               position=position_nudge(x=0.40), size=3.5) +
+  labs(title = "Percentage of Diners Choosing Vegetable Dishes",
+       x = "Condition",
+       y = "Percentage of Diners")
+
+```
+
+Explanation:- From the boxplot we can get an overview of how the percentage of diners
+choosing vegetables is affected by condition. For "healthy" and "tasty" conditions we can
+observe the presence of outliers. Also, we can check that the median for all the three conditions
+are nearly same. The IQR(interquartile) range for the "Tasty" is greater than other two
+conditions.
+
+
+#--------------2.2 Specifying a model ---------------#
+```{r,echo = True, warning=FALSE}
+veg$recipe <- as.factor(veg$recipe)
+veg$school <- as.factor(veg$school)
+
+# Specifying the formula for the mixed effects model
+model_formula <-  lmer(PercentDinersChooseVeg ~ condition + (1|school) + (1 | recipe), data = veg)
+
+```
+
+Explanation:-"Condition", represents the labeling condition of the vegetable
+dish (‘basic’, ‘healthy’, ‘tasty’). It’s a fixed effect because these conditions
+are set by the researchers and are the same across all schools. The researchers
+are interested in estimating the effect of these conditions on the likelihood of
+pupils choosing the vegetable dish.
+
+We are considering "School" as a random effect because the schools are considered
+as a random sample from a larger population of schools. The researchers are not
+specifically interested in the effects of individual schools on the likelihood of
+pupils choosing the vegetable dish. Instead, they are mostly interested in
+observing the variability between schools.
+
+"Recipe" represents the specific vegetable dish served. We are considering
+the same recipe can occur multiple times in the dataset with different labeling conditions,
+treating recipe as a random effect allows us to account for the variability 
+between recipes while also acknowledging that the effect of a recipe may not 
+be constant across different labeling conditions.
+
+
+#--------------2.3 Fitting the model--------------#
+
+```{r,echo = True, warning=FALSE}
+
+summary(model_formula)
+```
+
+Explanation:- Recipe Intercept: The estimated variance is 31.66, with a standard
+deviation of approximately 5.63. This indicates that there is substantial 
+variability between recipes in terms of their effect on the percentage of diners
+choosing the vegetable dish.
+
+School Intercept: The estimated variance is 117.16, with a standard deviation of
+approximately 10.82. This suggests that there is significant variability between
+schools in terms of their effect on the percentage of diners choosing the vegetable dish.
+
+The "conditionhealthy" coefficient (-1.14) suggests that, on average, the
+percentage of diners choosing vegetables decreases by about 1.14 percentage
+points under the ‘healthy’ condition compared to the ‘basic’ condition, holding
+all else constant.
+
+The "conditiontasty" coefficient (1.499) suggests that, on average, the
+percentage of diners choosing vegetables increases by about 1.5 percentage
+points under the ‘tasty’ condition compared to the ‘basic’ condition, holding
+all else constant.
+
+
+Based on our analysis, we can conclude that the condition of the food
+(labeled as ‘basic’, ‘healthy’, or ‘tasty’) and the recipe affect
+the percentage of diners choosing vegetables. We can also observe
+considerable variability across schools. Our result suggests that factors 
+specific to recipes and schools influence the diners' choice of accepting 
+vegetable dishes.
+
+The 'tasty' labeling condition appears to have a positive effect on the 
+likelihood of diners choosing the vegetable dish compared to the baseline 'basic' condition.
+
+On the other hand, the 'healthy' labeling condition shows a negative effect on 
+the likelihood of choosing the vegetable dish compared to the baseline 'basic' condition.
+
+
+
+
+#--------------  2.4 Distinction material: critique --------------#
+
+1. The negative effect of the 'healthy' label suggest for further investigation into 
+why it may deter students from choosing vegetable dishes. It could be related to
+perceptions of taste, familiarity, or other factors.
+
+2. Exploring specific recipe characteristics and school-related factors that 
+contribute to considerable variability in vegetable dish choices could provide 
+insights on making the vegetable dishes.
+
+3. Increase sample size: More data increases the robustness of the results as
+it reduces the impact of outliers and increases the power of statistical tests.
+
+4. Randomizing the order of conditions: Randomizing could help us in eliminating
+the effect of biased results and the order effects.
+
+5. As there is no p-values we face the difficulty in determining the denominator
+degrees of freedom in a mixed-effects context.If we don’t have much data point or 
+ p-values are necessary, then there are a few approximations we can make.
+
+6. Statistical assumptions: We should check assumptions of the model and ensure
+the assumptions are not violated.
+
+7. Controlled Environment: We should maintain controlled environment across schools, 
+such as arrangements, cleanliness, food appearances and noise levels. This could
+minimize external factors that could influence food choices.
+

@@ -1,0 +1,247 @@
+#------------ Adding required libraries -----------#
+
+library('dplyr')
+library('ggplot2')
+library('tidyverse')
+
+
+
+
+### Task 1: Creating and displaying data
+### ...............   1.1 Create a tibble...................###
+
+recipeData <- tibble(RecipeTitle = c('Chicken Stroganoff', 'Royal Chicken','Creamy Chicken Tortellini Soup','Grilled Greek Chicken', 'Saute Chicken Brazilian'), 
+                     Country = c('Russian', 'Scottish','Italian', 'Greek', 'Brazilian'), 
+                     Servings = c(4, 8, 4, 6, 5), 
+                     Calories = c(3047.04, 1266.45, 895.48, 2977.46, 6870.45), 
+                     Fat = c(117.23, 129.63, 39.19, 68.32, 393.95))
+
+
+recipeData
+
+
+### ..............Creating new Variable "Cal_per_Serve" that calculates the Calories per serving...........###
+recipeData_Mod <- recipeData %>%
+  dplyr::select(RecipeTitle,Country,  Servings, Calories, Fat) %>%
+  mutate(Cal_per_Serve = Calories / Servings)
+
+recipeData_Mod
+
+### ...............  1.2 Making a Figure .................####
+
+##------- Plotting the scatter plot to find the relationship between Calories and Data-------------##
+Fig <- ggplot(data= recipeData_Mod, aes(x = Calories, y = Fat,shape = Country)) + geom_point(color = "#C40234",  size=3) +
+         ggtitle("Plot of Calories Vs Fat") +
+          xlab("Calories (KCal)") + ylab("Fat (g)")
+      
+Fig
+
+##------- Adding the Recipe titles --------------##
+Fig2 <- Fig + geom_text(aes(label = RecipeTitle),nudge_x = -7, nudge_y = -9, size =3) 
+Fig2
+
+
+
+
+###========================================================================================###
+
+### Task 2: Your own design choices
+#---- Loading "moderndive" packages ------#
+install.packages("moderndive")
+library(moderndive)
+
+
+##-------- Loading the "Evals" dataset------------##
+dataset <- evals
+head(dataset, 10)
+
+
+##--------------Question Of Interest--------------##
+# How does beauty rating affect the evaluation score of professors? 
+# Additionally, we are investigating whether gender bias influences 
+# the evaluation scores.
+
+
+##---------- Visualizing scatter plot of Evaluation score against beauty rating--------##
+ggplot(data = evals, aes(x = bty_avg, y = score, color = gender)) +
+  geom_point() + 
+  geom_smooth(method = 'lm') +
+  xlab("Average Beauty Rating") + ylab("Average Evaluation Score")+
+  labs(color = "Gender") + ggtitle("A study on Professors' Performance Evaluation")+
+  theme_light()
+  
+##------------Analysis of the graph --------------###
+#In the case of male professors, the average beauty rating has a significantly 
+#greater impact on the evaluation score compared to female professors
+
+
+### Task 3: Predicting brain weight from body weight
+#-------- Loading Brain_body dataset----------##
+brain_body <- read.csv(file.choose())
+head(brain_body, 10)
+
+
+
+###========================================================================================###
+
+### ............... 3.1 Hypothesis .................####
+# Null hypothesis: There is no relationship between body weight and brain weight
+# Alternative hypothesis: There is a significant relationship between body weight and brain weight
+
+# We will check the P-value to decide if the body weight significantly effects the brain weight or not.
+# We set our significance level as 0.05 (standard). If the calculated p-value derived from the model
+# is less than than the significance level i.e. 0.05 we will accept the alternative hypothesis and reject
+# the null hypothesis
+
+
+
+
+
+### ............... 3.2 Data simulation ................###
+
+install.packages("pwr")
+library(pwr)
+
+# For Simulation, let's assume the effect size is 0.5 i.e. that for every 1 standardized unit 
+# increase in body weight, there is a plausible increase of 0.5 standardized units in brain weight.
+effect_size <- 0.5  # Plausible effect size
+
+
+#--------------------------------------------------------------------------------------#
+##------ Number of species for simulation ------##
+n_species <- 100  
+set.seed(50)
+
+##------ Simulating standardized body weight and brain weight while setting zero mean and unit standard deviation ------##
+body_weight <- rnorm(n_species, mean = 0, sd = 1)  
+brain_weight <- body_weight * effect_size + rnorm(n_species, mean = 0, sd = 1)
+
+##------ Creating data frame -----------## 
+simulated_data <- data.frame(body_weight, brain_weight)
+
+##------ Plotting the simulated data ---------##
+ggplot(simulated_data, aes(x = body_weight, y = brain_weight)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Simulated Data", x = "Body Weight (Standardized)", y = "Brain Weight (Standardized)")
+
+# Performing power analysis for desired power level of 90%
+power_analysis <- pwr.r.test(n = NULL, r = cor(body_weight, brain_weight), sig.level = 0.05, power = 0.9)
+
+# Getting the required sample size
+required_sample_size <- ceiling(power_analysis$n)
+
+# Desired Sample Size
+cat("Required sample size:", required_sample_size, "\n")
+
+### Based on the given sets of information, the required sample size would be 53 ###
+
+
+### ............... 3.3 Using data to fit a model ................###
+
+
+#----------- Plotting Body weight vs Brain Weight --------------#
+ggplot(data = brain_body, aes(x = body_weight, y = brain_weight)) +
+  geom_point(color = "red", shape = 18, size=3) + 
+  geom_smooth(method = 'lm')+
+  xlab("Body weight") + ylab("Brain Weight")+
+  ggtitle("Scatter plot of Body Weight Vs Brain weight")+
+  theme_light()
+
+
+#--------------- Perform power analysis------------------#
+correlation_coefficient <- cor(brain_body$body_weight, brain_body$brain_weight)
+cat("correlation_coefficient:", correlation_coefficient, "\n")
+
+power_analysis  <- pwr.r.test(n = NULL, r = cor(brain_body$body_weight, brain_body$brain_weight), sig.level = 0.05, power = 0.9)
+
+# Extract required sample size
+required_sample_size <- ceiling(power_analysis$n)
+
+# Display the result
+cat("Required sample size:", required_sample_size, "\n")
+
+
+# Given the above conditions, the required sample size is 7 and also we have observed that
+# correlation_coefficient between the brain and body weight is 0.93. Therefore, we can
+# conclude that the strong correlation between the variables  making it easier to detect 
+# with a smaller sample size with greater statistical power.
+
+
+
+#------------ Regression analysis ----------------#
+model_brain_body <- lm(brain_weight ~ body_weight, data = brain_body)
+summary(model_brain_body)
+body_coefficient <- summary(model_brain_body)$coefficients["body_weight", "Estimate"]
+print(paste("Coefficient Value for Body_weight:", body_coefficient))
+
+# For 1 standardised unit increase in body weight,
+# there is approximately a 0.9 standardised unit
+# increase in brain weight, according to our model.
+
+#par(mfrow=c(2,2))
+plot(model_brain_body, which = 1)
+
+
+# From the Residuals Vs Fitted Plot we can observe that the spread of residuals is
+# roughly constant across all levels of the fitted values. Therefore, we can assume
+# homoscedasticity within our dataset. So, it is evident that a linear model is a
+# good fit for the given brain_body dataset.
+
+
+
+#------ Hypothesis testing-----------#
+p_value <- summary(model_brain_body)$coefficients["body_weight", "Pr(>|t|)"]
+print(paste("P-value:", p_value))
+
+# As we can check the P-value is much less than 0.05 we can conclude that the body_weight significantly 
+# affects the brain_weight. Therefore, we are accepting the Alternative hypothesis.
+
+
+
+
+
+###========================================================================================###
+### Task 4: Distinction material: Data Visualisation
+
+
+#-------Five problems with the graph given in the question ------------#
+# 
+# 1. As it is very unclear if there is any sequential relation among the personality traits, 
+# therefore it does not make sense to use a sequntial color palette for the barplot.
+# 
+# 2. The errorbars on top of each bars are misleading as the standard deviation values 
+# for each trait bear different values than the values shown in the diagram.
+# 
+# 3. The average values for each trait do not exhibit the proper score distribution 
+# of the participants against each trait.
+# 
+# 4. There is no title or additional information explaining what “big5” refers to.
+# 
+# 5. It is impossible to detect outliers( participants with very high or very low trait score)
+# in the dataset.
+
+big5data <- read.csv(file.choose())
+head(big5data, 15)
+
+
+ggplot(big5data, aes(x = big5, y = score, fill = big5)) +
+  geom_boxplot() +
+  labs(title = "Personality Trait Boxplots",
+       x = "Personality Trait",
+       y = "Score") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#------ Advantages of the new plot ------------#
+# 1. The distribution of the scores for all the participants can be observed in a very detailed
+# way. We can check the IQR or interquartile ranges and median values for each trait, providing 
+# us a lot of information.
+
+# 2. We can check the presence of outliers. Such as Conscientiousness, extraversion, neroticism 
+# and openness traits have outliers.
+# 3. "Extraversion" has the lowest median score whereas "neuroticism" exhibits the maximum IQR
+# 4. The color palette selection is more appropriate here as there is no strong evidence of 
+# sequential relationship among the 5 traits given in the dataset
+
+

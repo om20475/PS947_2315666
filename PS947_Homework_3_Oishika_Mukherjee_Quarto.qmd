@@ -10,7 +10,6 @@ output:
   pdf_document: default
 ---
 
-
 ```{r, echo=TRUE, include=FALSE,warning=FALSE}
 #------------ Adding required libraries -----------#
 
@@ -28,8 +27,6 @@ library(lme4)
 set.seed(42)
 ```
 
-
-
 ```{r,echo = True, warning=FALSE}
 #read in recommendations.csv#
 recommendations <- read.csv(file.choose())
@@ -46,7 +43,6 @@ recommendations$Stimulus <- as.factor(recommendations$Stimulus)
 recommendations$RecommendationFollowed <- as.factor(recommendations$RecommendationFollowed)
 ```
 
-
 #--------- Answer 2.1 --------------#
 
 ```{r,echo = True, warning=FALSE}
@@ -55,12 +51,12 @@ recommendations$RecommendationFollowed <- as.factor(recommendations$Recommendati
 model <- glm(RecommendationFollowed ~ Mode, family = binomial, data = recommendations)
 summary(model)
 ```
-Summary Explanation:- The "ModeVisual" is the estimated difference in log-odds between the modes i.e. "Auditory" and "Visual". From the "Estimate" coefficient of "ModeVisual" we can say that the log-odds of accepting the recommendation being 1 decreases by 0.4858 when going from "auditory" to "Visual". Again, in our case, the p-value for "ModeVisual" is 1.95e-06, which is much less than 0.05, indicating a statistically significant difference in recommendation acceptance between auditory and visual modes. The decrease in deviance values when switching from the null model to our suggested model also suggests that "recommendationMode" is useful for predicting recommendation followed.
+
+**Summary Explanation**:- The "ModeVisual" is the estimated difference in log-odds between the modes i.e. "Auditory" and "Visual". From the "Estimate" coefficient of "ModeVisual" we can say that the log-odds of accepting the recommendation(RecommendationFollowed) being 1 decreases by 0.4858 when going from "auditory" to "Visual". Again, in our case, the p-value for "ModeVisual" is 1.95e-06, which is much less than 0.05, indicating a statistically significant difference in recommendation acceptance between auditory and visual modes. The decrease in deviance values when switching from the null model to our suggested model also suggests that "recommendationMode" is useful for predicting recommendation followed.
 
 In conclusion, the model suggests that there is a difference in recommendations followed by the two modes. The negative coefficient for ModeVisual suggests that the recommendations followed is lower for Visual mode compared to Auditory mode.
 
-Analysis Choice Explanation:- We have used the "glm" model of "binomial" family because the outcome variable (RecommendationFollowed) is binary (0 or 1) in nature. The model predicts the probability of a binary outcome based on one or more predictor variables.
-
+**Analysis Choice Explanation**:- We have used the "glm" model of "binomial" family because the outcome variable (RecommendationFollowed) is binary (0 or 1) in nature. The model predicts the probability of a binary outcome(Recommendation accepted or rejected) based on one or more predictor variables.
 
 #--------- Answer 2.2 --------------#
 
@@ -71,28 +67,26 @@ ggplot(recommendations, aes(x = Mode, fill = RecommendationFollowed)) +
   ylab("Proportion") +
   xlab("Recommendation Mode") +
   ggtitle("Proportion of Recommendations Followed by Mode") +
-  theme_minimal()
+  theme_few()
 
 ```
-Explanation:- We can observe that the proportion of recommendation followed is around 0.52 or 52% when the Recommendation mode is Auditory, whereas the same for Visual mode is around 39-40 %. Therefore, it is evident that the participants usually follow more recommendations when the recommendation mode is Auditory rather than visual. Another interesting fact is that more than half of the cases(nearly 60%) participants rejected the recommendation when the mode is visual.
 
-
+**Explanation**:- We can observe that the proportion of RecommendationFollowed is around 0.52 or 52% when the Recommendation mode is Auditory, whereas the same for Visual mode is around 39-40 %. Therefore, it is evident that the participants usually follow more recommendations when the recommendation mode is Auditory rather than visual. Another interesting fact is that in more than half of the cases(nearly 60%) participants rejected the recommendation when the mode is visual.
 
 #--------- Answer 2.3 --------------#
+
 ```{r,echo = True, warning=FALSE}
 # Fit the model
 model2 <- glm(RecommendationFollowed ~ Mode + Mode * CompositeIntellect, family = binomial, data = recommendations)
 summary(model2)
 
 ```
-In order to analyse the effects of competency, intelligence, and thoughtfulness with modality, we have included the variable "CompositeIntellect" as it represents the composite measure of perceived competence, intelligence, and thoughtfulness. Including "CompositeIntellect" variable in our revised 'glm' model along with an interaction term between "CompositeIntellect" and "Mode" would allow us to examine if the effect of perceived intellect varies depending on the recommendation mode.
 
-The model suggests that the Mode of Visual and CompositeIntellect significantly affect whether the Recommendation is followed. When the Mode is Visual, the log odds of RecommendationFollowed decrease by 0.1669. On the other hand, for each unit increase in CompositeIntellect, the log odds of RecommendationFollowed increase by 0.4430. In our revised 'glm' model, the corresponding p-value for CompositeIntellect is less than 2e-16 , i.e. much less than 0.05 which suggests that the 'compositeintellect' is statistically significant and plays a crucial role whether the recommendation is perceived or not. However, the interaction term ModeVisual:CompositeIntellect is not statistically significant, indicating that the effect of Mode on RecommendationFollowed does not depend on CompositeIntellect. 
+**Explanation**:- In order to analyse the effects of competency, intelligence, and thoughtfulness with modality, we have included the variable "CompositeIntellect" as it represents the composite measure of perceived competence, intelligence, and thoughtfulness(The average of 3 scores). Including "CompositeIntellect" variable in our revised 'glm' model along with an interaction term between "CompositeIntellect" and "Mode" would allow us to examine if the effect of perceived intellect varies depending on the recommendation mode.
 
-Therefore we can conclude that the compositeIntellect(competent, intelligent and/or thoughtful) and Mode of recommendations are important factors over accepting or declining a recommendation individually although there is very small corelation between these factors.
+The model suggests that the Mode of Visual and CompositeIntellect significantly affect whether the Recommendation is followed. When the Mode is Visual, the log odds of RecommendationFollowed decrease by 0.1669. On the other hand, for each unit increase in CompositeIntellect, the log odds of RecommendationFollowed increase by 0.4430. In our revised 'glm' model, the corresponding p-value for CompositeIntellect is less than 2e-16 , i.e. much less than 0.05 which suggests that the 'compositeintellect' is statistically significant and plays a crucial role whether the recommendation is perceived or not. However, the interaction term ModeVisual:CompositeIntellect is not statistically significant(P value \> 0), indicating that the effect of Mode on RecommendationFollowed does not depend on CompositeIntellect.
 
-
-
+Therefore we can conclude that the compositeIntellect(competent, intelligent and/or thoughtful) and Mode of recommendations are important factors over accepting or declining a recommendation individually.
 
 #--------- Answer 3.1 --------------#
 
@@ -100,8 +94,8 @@ The beta distribution takes two shape parameters i.e. alpha and beta. These para
 
 The Beta distribution is defined in the interval \[0, 1\], therefore we need to scale the dependent variable i.e students' marks to be within this range.
 
-
 #--------- Answer 3.2 --------------#
+
 ```{r,echo=TRUE, include=TRUE,warning=FALSE}
 
 # Define parameters
@@ -123,11 +117,11 @@ ggplot(df, aes(x = x, y = y)) +
 
 
 ```
-Comparing with the given example in the slide where mu is given as N(67,5), we set our alpha and beta as 30 and 15
-through trial and error method. In our case the informative prior is centered around 0.67 
 
+Comparing with the given example in the slide where mu is given as N(67,5), we set our alpha and beta as 30 and 15 through trial and error method. In our case the informative prior is centered around 0.67
 
 #--------- Answer 3.3 --------------#
+
 ```{r,echo=TRUE, include=TRUE,warning=FALSE}
 
 # Define parameters for weakly informative priors
@@ -138,10 +132,10 @@ weak_beta <- 7
 alpha <- 80
 beta <- 50
 
-# creating data
+# creating marks data
 x <- seq(0, 1, 0.01)
 
-# Creating dataframe
+# Creating dataframe with beta distribution information
 beta_informative <- dbeta(x, weak_alpha,weak_beta )
 beta_weak <- dbeta(x, alpha, beta)
 data <- data.frame(x,beta_informative, beta_weak)
@@ -151,8 +145,8 @@ ggplot(data) + geom_line(aes(x, beta_informative),color='red') + geom_line(aes(x
 
 ```
 
-
 #--------- Answer 3.4 --------------#
+
 ```{r,echo=TRUE, include=TRUE,warning=FALSE}
 # Generate priors
 priors <- tibble(n = 1:50) %>% 
@@ -173,6 +167,7 @@ gen_prior_pred <- function(n, alpha, beta) {
 prior_ll <- pmap_df(priors, gen_prior_pred)
 
 ```
+
 ```{r}
 # Plot the results
 ggplot(prior_ll, aes(x, y, group = interaction(alpha, beta))) + 
@@ -181,17 +176,3 @@ ggplot(prior_ll, aes(x, y, group = interaction(alpha, beta))) +
        title = "Prior Predictions",
        subtitle = "Beta Distributions")
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-

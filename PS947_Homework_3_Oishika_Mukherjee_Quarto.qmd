@@ -145,6 +145,10 @@ ggplot(data) + geom_line(aes(x, beta_informative),color='red') + geom_line(aes(x
 
 ```
 
+The red line denotes the Beta distribution for Weakly informative priors whereas the blue line suggests the beta distribution for informative priors. The Beta distribution for weakly informative priors is widely spread around the mean probability 0.5 as we have chosen "7" as both alpha and beta parameter values.
+
+For the informative priors, we have set the parameter values as 80 (alpha) and 50 (beta) for the beta distribution. Here, we are assuming that the pass mark as 50 and highest gained mark as 80.
+
 #--------- Answer 3.4 --------------#
 
 ```{r,echo=TRUE, include=TRUE,warning=FALSE}
@@ -156,10 +160,10 @@ priors
 
 # Define function to generate prior predictions
 gen_prior_pred <- function(n, alpha, beta) {
-  x <- seq(0, 100, 1)
+  x <- seq(0, 1, 0.01)
   d <- tibble(n = n, alpha = alpha, beta = beta,
               x = x,
-              y = dbeta(x/100, alpha, beta))
+              y = dbeta(x, alpha, beta))
   return(d)
 }
 
@@ -173,6 +177,7 @@ prior_ll <- pmap_df(priors, gen_prior_pred)
 ggplot(prior_ll, aes(x, y, group = interaction(alpha, beta))) + 
   geom_path() +
   labs(x = "Probability", y = "Probability Density", 
-       title = "Prior Predictions",
-       subtitle = "Beta Distributions")
+       title = "Prior Predictions for Beta Distributions")
 ```
+
+We have plotted a set of prior predictions for our Beta distribution. For the alpha parameter we have created a set of values using normal distribution of a range between 65 and 85 as we are assuming top range of marks varies between the mentioned range. And similarly, for Beta we generated the set of normally distributed values within the range between 40 and 50 (assumed as minimum obtained marks.)

@@ -1,0 +1,293 @@
+---
+format: html
+title: 'PS947: Homework 4'
+author: "Oishika Mukherjee "
+GIT_link: "https://github.com/om20475/PS947_2315666"
+date: "15/03/2024"
+theme: "cosmo"
+---
+
+## Adding required libraries
+
+```{r,echo=TRUE, include=FALSE,warning=FALSE}
+library('factoextra')
+library('brms')
+library('tidybayes')
+library('dplyr')
+library('ggplot2')
+library('tidyverse')
+library('car')
+library('ggthemes')
+library('RColorBrewer')
+library('wesanderson')
+library('lme4')
+```
+
+## Question 1: Statistics marks
+
+### Part 1: Explain model structure and priors
+
+```{r}
+#| echo: True
+#| output: True 
+chronotype_data <- read.csv(file.choose())
+```
+
+We are interested in checking whether a person's chronotype affect their total runtime. Here we can consider maximum heart rate as a confounding variable as we believe that heart-rate could directly affect someone's runtime and also tells us about a person's fitness. Therefore we require four parameters:- 1. an intercept, 2. effect of chronotype, 3.slope of total_runtime and 4. variance.
+
+Therefore we are standardizing our continuous variables(total_runtime and max_heart_rate) and factorizing the chronotype variable.
+
+```{r}
+#| echo: True
+#| output: True
+#| 
+ # ---------calculating total run-time------------#
+chronotype_data <- mutate(chronotype_data, total_runtime = run_min * 60 + run_sec)
+
+# --------Standardizing the variables--------##
+chronotype_data$total_runtime  <- scale(chronotype_data$total_runtime)
+chronotype_data$max_heart_rate <- scale(chronotype_data$max_heart_rate)
+chronotype_data$chronotype <- as.factor(chronotype_data$chronotype)
+
+head(chronotype_data)
+```
+
+As we have scaled our variables, we know that the mean of both our continuous variables must be 0.
+
+-   Our intercept will represent the mean runtime for the participants. It may be higher or lower than the overall grand mean. a ∼ N(0, 0.5)
+-   b~chronotype~ represents the difference between a person's chronotype i.e. 'morning' or 'evening'. Therefore, b~chronotype~ ∼ N(0, 0.5) as we don't know if this is negative or positive.
+-   From our experience we know that the Heart-rate has direct influence on a person's runtime capability. Therefore we will set a weakly informative prior(centered on 0) i.e. b~max_heart_rate~ \~ N(0, 0.5)
+-   And setting prior value of sigma of around 1.
+-   **Model equation:** y = a + b~chronotype~ \* chronotype + b~max_heart_rate~ \* max_heart_rate
+
+```{r}
+#| echo: True
+#| output: True
+
+# ------------ setting prior values------------##
+my_priors <- c(prior(normal(0,0.50),class =  "Intercept"),
+prior(normal(0,0.50),class =  "b", coef = "chronotypemorning"),
+prior(normal(0,0.25),class =  "b", coef = "max_heart_rate"),
+prior(exponential(1),class =  "sigma"))
+```
+
+```{r, echo=TRUE, include=FALSE,warning=FALSE}
+ 
+# ------------ generating prior predictions --------##
+model <- brm(total_runtime ~ chronotype + max_heart_rate, data = chronotype_data,
+             prior = my_priors,
+             sample_prior = "only")
+```
+
+```{r, echo=TRUE, include=TRUE,warning=FALSE}
+
+#-------- Extracting Prior Sample ----------##
+prior_sample <- as_draws_df(model)
+prior_sample
+```
+
+### Part 2: Using priors to generate some predictions
+
+```{r,echo=TRUE, include=TRUE,warning=FALSE}
+#| echo: True
+#| output: True
+ #----------- Making predictions using tidybayes---------##
+chronotype_data %>% modelr::data_grid (max_heart_rate= seq(-3, 3, 0.1), chronotype) %>%
+  add_epred_draws (model, ndraws = 500) -> prior_predictions
+prior_predictions
+```
+
+```{r, echo=TRUE, include=TRUE,warning=FALSE}
+#| echo: True
+#| output: True
+# ---------- Plotting prior predictions using tidybayes-----------###
+chronotype_data %>% ggplot (aes(max_heart_rate, total_runtime, colour = chronotype)) +
+  geom_point () +
+  geom_path(data = prior_predictions, aes(y=.epred, group= interaction(chronotype, .draw)), alpha= 0.25) + 
+  ggtitle("Prior Predictions")
+```
+
+### Part 3: Visualise the choice of prior
+
+```{r,echo=TRUE, include=TRUE,warning=FALSE}
+
+# ---------  Visualise the choice of prior using stateye -----###
+chronotype_data %>%
+  ggplot(aes(x = total_runtime, y = chronotype), fill = chronotype) +
+  stat_halfeye(point_interval = mean_hdi) +
+  labs(x = "Total Run Time (seconds)", y = "Chronotype") +
+  theme_bw()
+
+```
+
+In this case, the "morning" prior distribution is narrower and more peaked, indicating a more precise information about the run times in the morning. On the other hand, the "evening" prior distribution is broader and flatter, telling greater variability in the prior beliefs about the evening run times.
+
+### Part 4: Fitting model with real data
+
+```{r,include= FALSE,warning=FALSE}
+# ---------- Fitting model to real data -----------###
+model2 <- brm(total_runtime ~ chronotype + max_heart_rate, data = chronotype_data,
+             prior = my_priors)
+```
+
+```{r,warning=FALSE}
+# --------- traceplots for fitted model ----------###
+plot(model2)
+```
+
+From the distribution of the traceplots, we can conclude that our model is fitted well.
+
+```{r,warning=FALSE}
+# -------------Posterior predictions ------------###
+chronotype_data %>% modelr::data_grid (max_heart_rate= seq(-3, 3, 0.1), chronotype) %>%
+  add_epred_draws(model2, ndraws = 500) -> posterior_predictions
+posterior_predictions
+```
+
+```{r,warning=FALSE}
+chronotype_data %>% ggplot (aes(max_heart_rate, total_runtime, colour = chronotype)) +
+  geom_point() +
+  geom_path(data = posterior_predictions, aes(y=.epred, group= interaction(chronotype, .draw)), alpha= 0.25)+
+  xlab('Maximum heart rate') + ylab('Total runtime') + ggtitle("Posterior predictions")
+```
+
+## Question 2: Causality
+
+### Part 1: spurious correlation???
+
+The negative correlation between intelligence (IQ) and athleticism reported by the researcher could be spurious for several reasons:
+
+**Selection Bias:** If the study only included students with athletic scholarships and compared them to the general student population, there might be an inherent bias. Students with athletic scholarships are likely to be more physically improved, while the general student population may have a broader range of intellectual abilities.
+
+**Confound Variables:** Other factors might influence both IQ and athleticism, creating the illusion of a correlation. For instance, socioeconomic status, access to resources, nutritional intake, or cultural factors could impact both intellectual aptitude and physical development.
+
+**Errors in measurement:** The techniques employed to gauge IQ or athleticism may be flawed or inconsistent, resulting in inaccurate findings.
+
+**Reverse causality**: There's a possibility that the relationship is the opposite, where athletic prowess shapes the development of certain cognitive abilities, rather than IQ directly impacting athleticism.
+
+**Sampling bias**: If the subset of students used in the study does not adequately represent the entire population, the results may not be generalizable.
+
+### Part 2: Distinction material
+
+```{r}
+# Simulating Random data (1000 datapoints)
+set.seed(50)
+n <- 1000
+intelligence <- rnorm(n, mean = 100, sd = 15)  
+socioeconomic_status <- rnorm(n, mean = 50, sd = 10) 
+athleticism <- 80 - 0.2 * intelligence + 0.5 * socioeconomic_status + rnorm(n, mean = 0, sd = 10)
+
+# Converting into data frame
+data <- data.frame(intelligence, athleticism, socioeconomic_status)
+
+# Calculate correlation between intelligence and athleticism
+cor_intelligence_athleticism <- cor(intelligence, athleticism)
+print(paste("Correlation between intelligence and athleticism:", cor_intelligence_athleticism))
+```
+
+We simulated a dataset where negative correlation exists between intelligence and athleticism to mimic the condition of the given question. The output shows a negative correlation between intelligence and athleticism, which could be interpreted as a spurious correlation due to the influence of the confounding variable, socioeconomic status.
+
+```{r,warning=FALSE}
+
+# Plot the relationship between IQ and athleticism
+ggplot(data, aes(x = intelligence, y = athleticism)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "IQ", y = "Athleticism", title = "Relationship between IQ and Athleticism")
+```
+
+```{r}
+# Plot the relationship between IQ and athleticism
+summary(lm(athleticism ~ intelligence + socioeconomic_status, data = data))$coefficients
+```
+
+From the above summary we can observe two things:- 1. people with better socioeconomic_status posses better athleticism characteristics. 2. Better intelligence contributes to decreased athleticism.
+
+Our second observation could be deceptive. When analyzing the correlation between intelligence and athleticism without considering socioeconomic status, we notice a negative correlation. Nevertheless, this correlation might be spurious since socioeconomic status affects both intelligence (via educational access and resources) and athleticism (through access to sports facilities and opportunities).
+
+## Question 3: PCA
+
+### Part 1: Conduct a PCA
+
+```{r}
+#| echo: True
+#| output: false 
+
+#----- loading threat data-------#
+threat_data <- read.csv(file.choose())
+```
+
+```{r}
+#| echo: True
+#| output: True
+
+#------- Conducting Principal Component Analysis------#
+PCA_threat <- prcomp(threat_data, scale. = TRUE)
+summary(PCA_threat)
+```
+
+### Part 2: Variance Explained by first two Components
+
+```{r}
+#| echo: True
+#| output: True
+
+#------ Checking the Loadings for the First Principle components-------#
+
+All_loadings <- PCA_threat$rotation
+Loadings_FirstPC <- All_loadings[,1]
+Loadings_FirstPC
+```
+
+```{r}
+#| echo: True
+#| output: True
+
+# Proportion of variance explained by first two principle components
+
+PVE <- (PCA_threat$sdev)^2 / sum((PCA_threat$sdev)^2)
+PVE_first_2_PC <- PVE[1:2]
+PVE_first_2_PC
+```
+
+From the result we can conclude that the first principal component is responsible for 41.55% of the variance in the data, while the second component explains additional 13.72% variance. Therefore in total, the first two principal components contribute towards 55.27% variance in the data.
+
+### Part 3: Draw a plot to examine the first two principal components
+
+```{r}
+#| echo: True
+#| output: True
+
+fviz_eig(PCA_threat) + ggtitle("Fig 1: Scree Plot of the Prinicipal Components")
+```
+
+```{r}
+#| echo: True
+#| output: True
+fviz_pca_var(PCA_threat,axes = c(1, 2), col.var = "contrib", 
+   gradient.cols = c("white", "blue", "red"),
+   ggtheme = theme_minimal()) + ggtitle("Fig2: Variance exlained by first two principal components")
+
+```
+
+### Part 4: Interpreting the first two principal components
+
+```{r}
+#| echo: True
+#| output: True
+
+# Rendering variable coordinates
+var_coords <- get_pca_var(PCA_threat)$coord
+
+# Print the coordinates for the first two components
+print(var_coords[, 1:2])
+```
+
+By examining the variable coordinates and the above plots, we can explore numerous interesting facts. Dim.1 and Dim.2 are first and second principal components respectively. From the above PVE(Proportion of variance ) analysis we have seen that the first two principal components explain 41.55% and 13.72% variances in the data respectively.
+
+The variables with the highest negative loadings on Dim.1 are related to personal and societal threats, such as: fooddeprivation, lossofousing, lackofjobs, crimesurge, lackmedical, poverty, legalinjustice, discrimination etc. Our findings suggest that that Dim.1 represents a contrast between personal and societal threats, with negative values corresponding to higher levels of concern.
+
+The variables with the highest positive loadings on Dim.2 are related to environmental and social issues, such as climatechange, pollution, discrimination, poverty etc. On contrast, the variables with the highest negative loadings on Dim.2 are related to external threats, such as: Syrianrefugees, illegalimmigration, NorthKoreaAttack, IranAttack, RussiaAttack, terrorattack etc. So our observation for Dim.2 suggest that Dim.2 represents a contrast between environmental and social issues (positive values) and external threats (negative values)
+
+
+**NOTE:- PDF version of the executed file is uploaded to GIT**
